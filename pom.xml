@@ -65,6 +65,26 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+
+
+		<!--Dependencies for JWT Implementation-->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId> <!-- JWT APIs provider -->
+			<version>0.11.5</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId> <!-- JWT APIs implementation -->
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId> <!-- Required for JSON processing -->
+			<version>0.11.5</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

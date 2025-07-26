@@ -1,11 +1,17 @@
 package com.spring.security.SpringSecurityLearn.config;
 
 
+import com.spring.security.SpringSecurityLearn.models.JwtUtil;
+import com.spring.security.SpringSecurityLearn.services.JwtUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -13,10 +19,25 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+
+    private final JwtUtil jwtUtil;
+    private final JwtUserDetailsService userDetailsService;
+
+
+    public SecurityConfig(JwtUtil jwtUtil,JwtUserDetailsService userDetailsService){
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
+
 
     // Specify the Password Encoder to be used by Authentication Provider
     @Bean
@@ -25,16 +46,46 @@ public class SecurityConfig {
     }
 
 
+    // We have to do all this manually as we are not using internal spring functionality
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(){
+         DaoAuthenticationProvider authenticationProvider =new DaoAuthenticationProvider(
+                userDetailsService
+        );
+         authenticationProvider.setPasswordEncoder(getPasswordEncoder());
+         return authenticationProvider;
+    }
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+
+        // For JWT auth
+        // Create the object of Auth Filter
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(getAuthenticationManager(),jwtUtil);
+
         httpSecurity
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/v1/auth/register").permitAll()
+                        auth.requestMatchers("/api/v1/jwt/auth/register").permitAll()
                                 .anyRequest().authenticated()
                 )
+                .sessionManagement(session->session.sessionCreationPolicy(
+                        SessionCreationPolicy.STATELESS
+                ))
                 .csrf(csrf -> csrf.disable())
-                .httpBasic(Customizer.withDefaults());
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);// Add the filter to the security filter chain
         return httpSecurity.build();
+    }
+
+
+    // new auth managers are always empty and we have to pass provider to it
+    @Bean
+    public AuthenticationManager getAuthenticationManager(){
+        return new ProviderManager(
+                Collections.singletonList(
+                        authenticationProvider()
+                )
+        );
     }
 
 
