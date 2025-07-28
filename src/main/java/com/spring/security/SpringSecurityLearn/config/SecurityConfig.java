@@ -1,6 +1,10 @@
 package com.spring.security.SpringSecurityLearn.config;
 
 
+import com.spring.security.SpringSecurityLearn.filters.JwtAuthenticationFilter;
+import com.spring.security.SpringSecurityLearn.filters.JwtRefreshFilter;
+import com.spring.security.SpringSecurityLearn.filters.JwtValidationFilter;
+import com.spring.security.SpringSecurityLearn.filters.JwtValidationProvider;
 import com.spring.security.SpringSecurityLearn.models.JwtUtil;
 import com.spring.security.SpringSecurityLearn.services.JwtUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -8,21 +12,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
@@ -58,11 +56,23 @@ public class SecurityConfig {
 
 
     @Bean
+    public JwtValidationProvider jwtValidationProvider(){
+        return new JwtValidationProvider(jwtUtil,userDetailsService);
+    }
+
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
         // For JWT auth
         // Create the object of Auth Filter
         JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(getAuthenticationManager(),jwtUtil);
+
+        // Create object for validation filter
+        JwtValidationFilter jwtValidationFilter = new JwtValidationFilter(getAuthenticationManager());
+
+        // Create JWT Refresh filter
+        JwtRefreshFilter jwtRefreshFilter = new JwtRefreshFilter(getAuthenticationManager(),jwtUtil);
 
         httpSecurity
                 .authorizeHttpRequests(auth ->
@@ -73,7 +83,9 @@ public class SecurityConfig {
                         SessionCreationPolicy.STATELESS
                 ))
                 .csrf(csrf -> csrf.disable())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);// Add the filter to the security filter chain
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)// Add the filter to the security filter chain
+                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class)// add the filter for validation
+                .addFilterAfter(jwtRefreshFilter, JwtValidationFilter.class);
         return httpSecurity.build();
     }
 
@@ -82,8 +94,9 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager getAuthenticationManager(){
         return new ProviderManager(
-                Collections.singletonList(
-                        authenticationProvider()
+                Arrays.asList(
+                        authenticationProvider(),
+                        jwtValidationProvider()
                 )
         );
     }

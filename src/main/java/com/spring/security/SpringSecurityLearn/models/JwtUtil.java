@@ -1,5 +1,6 @@
 package com.spring.security.SpringSecurityLearn.models;
 
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -23,5 +24,18 @@ public class JwtUtil {
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMinutes * 60 * 1000))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String validateAndExtractUsername(String token){
+        try{
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
+        } catch (Exception e) {
+            return null; // Invalid or expired JWT
+        }
     }
 }

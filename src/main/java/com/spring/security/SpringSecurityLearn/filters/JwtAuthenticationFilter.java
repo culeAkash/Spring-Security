@@ -1,10 +1,11 @@
-package com.spring.security.SpringSecurityLearn.config;
+package com.spring.security.SpringSecurityLearn.filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spring.security.SpringSecurityLearn.models.JwtUtil;
 import com.spring.security.SpringSecurityLearn.payloads.LoginRequest;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -57,6 +58,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             LOGGER.info("JWT Token : {}" , token);
             // attach the token to the response
             response.addHeader("Authorization","Bearer " + token);
+
+
+            // Create refresh token also
+            String refreshToken = jwtUtil.generateToken(authentication.getName(),7*24*60);
+            // Set refresh token in HTTpOnly Cookie
+
+            Cookie refreshCookie = new Cookie("refreshToken",refreshToken);
+            refreshCookie.setHttpOnly(true);// prevents JS from accessing it
+            refreshCookie.setSecure(true);// Sent over HTTPs only
+            refreshCookie.setPath("/refresh-token");// Cookie sent over only refresh endpoint
+            refreshCookie.setMaxAge(7*24*60*60);
+            response.addCookie(refreshCookie);
+
         }
 
     }
