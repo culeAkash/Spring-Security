@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,6 +26,7 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)// for PreAuthorize and PostAuthorize to work
 public class SecurityConfig {
 
 
@@ -61,33 +64,70 @@ public class SecurityConfig {
     }
 
 
+//    @Bean
+//    public SecurityFilterChain securityFilterChain1(HttpSecurity httpSecurity) throws Exception {
+//
+//        // For JWT auth
+//        // Create the object of Auth Filter
+//        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(getAuthenticationManager(),jwtUtil);
+//
+//        // Create object for validation filter
+//        JwtValidationFilter jwtValidationFilter = new JwtValidationFilter(getAuthenticationManager());
+//
+//        // Create JWT Refresh filter
+//        JwtRefreshFilter jwtRefreshFilter = new JwtRefreshFilter(getAuthenticationManager(),jwtUtil);
+//
+//        httpSecurity
+//                .securityMatcher("/api/v1/jwt/**")
+//                .authorizeHttpRequests(auth ->
+//                        auth.requestMatchers("/api/v1/jwt/auth/register").permitAll()
+//                                .anyRequest().authenticated()
+//                )
+//                .sessionManagement(session->session.sessionCreationPolicy(
+//                        SessionCreationPolicy.STATELESS
+//                ))
+//                .csrf(csrf -> csrf.disable())
+//                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)// Add the filter to the security filter chain
+//                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class)// add the filter for validation
+//                .addFilterAfter(jwtRefreshFilter, JwtValidationFilter.class);
+//        return httpSecurity.build();
+//    }
+
+
+
+    // Security Filter Chain for role based authorization demo
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-
-        // For JWT auth
-        // Create the object of Auth Filter
-        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(getAuthenticationManager(),jwtUtil);
-
-        // Create object for validation filter
-        JwtValidationFilter jwtValidationFilter = new JwtValidationFilter(getAuthenticationManager());
-
-        // Create JWT Refresh filter
-        JwtRefreshFilter jwtRefreshFilter = new JwtRefreshFilter(getAuthenticationManager(),jwtUtil);
-
+    public SecurityFilterChain securityFilterChain3(HttpSecurity httpSecurity) throws Exception{
         httpSecurity
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/v1/jwt/auth/register").permitAll()
+                .securityMatcher("/api/v1/auth/role")
+                .authorizeHttpRequests(auth->
+                        auth.requestMatchers("/api/v1/auth/role/login-user").permitAll()
                                 .anyRequest().authenticated()
                 )
-                .sessionManagement(session->session.sessionCreationPolicy(
-                        SessionCreationPolicy.STATELESS
-                ))
-                .csrf(csrf -> csrf.disable())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)// Add the filter to the security filter chain
-                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class)// add the filter for validation
-                .addFilterAfter(jwtRefreshFilter, JwtValidationFilter.class);
+                .sessionManagement(session->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .csrf(csrf->csrf.disable())
+                .httpBasic(Customizer.withDefaults());
         return httpSecurity.build();
     }
+
+
+
+    // For OAuth2 authentication
+//    @Bean
+//    public SecurityFilterChain securityFilterChain2(HttpSecurity httpSecurity) throws Exception {
+//        httpSecurity.authorizeHttpRequests(auth->auth
+//                        .requestMatchers("/login/**","/oauth2/**").permitAll()
+//                        .anyRequest().authenticated()
+//        )
+//                .csrf(csrf -> csrf.disable())
+//                .oauth2Login(Customizer.withDefaults());
+//        return httpSecurity.build();
+//    }
+
+
+
 
 
     // new auth managers are always empty and we have to pass provider to it

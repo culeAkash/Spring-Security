@@ -7,7 +7,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 // Need to implement UserDetails as during auth, UserDetails object is required
@@ -33,9 +35,22 @@ public class BasicUserDetails implements UserDetails {
 
     private String role;
 
+    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    private List<Permission> userPermissions;
+
+
+    // Add all the roles and permissions related to the user to Authorities list
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
+        Set<GrantedAuthority> authorities = new HashSet<>();
+
+        authorities.add(new SimpleGrantedAuthority(role));
+
+        for(Permission permission : userPermissions){
+            authorities.add(new SimpleGrantedAuthority(permission.getName()));
+        }
+
+        return authorities;
     }
 
     @Override
